@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+    <!-- add title -->
+    <title>Risk Probability</title>
+    <!-- import required libraries here -->
+    <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+  <script type="text/javascript" src="../lib/d3-dsv.min.js"></script>
+  <script type="text/javascript" src="../lib/d3-legend.min.js"></script>
+    
+    <style>
+        /* define CSS rules here */
+    
+    </style>
+
+    <title></title>
+</head>
+
+
+<body>
+    <!-- Add heading for the visualization -->
+    <header>Risk of Heart Disease </header>
+    <!-- Create dropdown element here. Options should be added after reading in game file, they should not be created here.-->
+    
+    <div id = "dropdowns"></div>
+    <div id = "probabilities"></div>
+    
+    <script>
+    
+        // enter code to define margin and dimensions for svg
+        var margin = ({top: 40, right: 50, bottom: 60, left: 50})
+        var width = 960 - margin.left - margin.right;
+        var height = 500 - margin.top - margin.bottom;
+        
+        // define any other global variables 
+        const numeric_vars = new Set(["BMI", "HeightInMeters", "MentalHealthDays", "PhysicalHealthDays", "SleepHours", "WeightInKilograms"]);
+        const output_vars = new Set(["HadHeartAttack"]);
+
+        Promise.all([
+            d3.dsv(",", "../data/heart_2022_no_nans.csv", d => {
+                d.BMI = +d.BMI; // Convert string to number
+                d.HeightInMeters = +d.HeightInMeters; // Convert string to number
+                d.MentalHealthDays = +d.MentalHealthDays; // Convert string to number
+                d.PhysicalHealthDays = +d.PhysicalHealthDays; // Convert string to number
+                d.SleepHours = +d.SleepHours; // Convert string to number
+                d.WeightInKilograms = +d.WeightInKilograms; // Convert string to number
+                
+                return d;
+            }),
+        ]).then(([heartData]) => {
+            // enter code to call ready() with required arguments
+            ready(-1, heartData);
+        });
+        
+        // this function should be called once the data from files have been read
+        // world: topojson from world_countries.json
+        // gameData: data from ratings-by-country.csv
+        
+        function ready(error, heartData) {
+        
+            console.log(heartData);
+            let values_dict = {};
+
+            heartData.forEach(d => {
+                for (var key in d) {
+                    if (!values_dict.hasOwnProperty(key)) {
+                        values_dict[key] = new Set();
+                    }
+
+                    values_dict[key].add(d[key])
+                }
+                // console.log(d);
+            });
+
+            let dropdownsContainer = d3.select("#dropdowns");
+
+            let dropdownDiv;
+            let dropdown;
+            heartData.columns.forEach(d => {
+                if (!numeric_vars.has(d) && !output_vars.has(d)) {
+                    dropdownDiv = dropdownsContainer.append("div").attr("id", f => {return d;});
+                    dropdownDiv.append("label").text(d + ": ");
+
+                    dropdown = dropdownDiv.append("select").on("change", _ => calculateProbaility(heartData));
+                    dropdown.selectAll("option")
+                        .data(Array.from(values_dict[d])) // Sample options, replace with your data
+                        .enter().append("option")
+                        .text(function(option) { return option; });
+                    
+                }
+            })
+
+            let probabilityContainer = d3.select("#probabilities");
+            let bayesProb = probabilityContainer.append("div").attr("id", "bayes")
+            bayesProb.append("label").text("Bayes Probability of heart cancer: , n=")
+
+            let naiveBayes = probabilityContainer.append("div").attr("id", "naiveBayes")
+            naiveBayes.append("label").text("Naive Bayes Probability of heart cancer: , n=")
+
+        }
+
+        function calculateProbaility(heartData) {
+            
+            var dropdownsContainer = d3.select("#dropdowns");
+
+            // Initialize an object to store dropdown values
+            var dropdownValues = {};
+
+            // Iterate through each dropdown
+            dropdownsContainer.selectAll("select").each(function() {
+                var dropdownId = d3.select(this.parentNode).attr("id"); // Get the id of the dropdown's parent div
+                var selectedValue = this.value; // Get the selected value of the dropdown
+
+                // Store the selected value in the object
+                dropdownValues[dropdownId] = selectedValue;
+            });
+
+            // Log or use the dropdown values as needed
+            console.log("Dropdown values:", dropdownValues);
+
+            let diseaseCount = 0;
+            let totalCount = 0;
+            let toContinue = false;
+
+            heartData.forEach(d => {
+                toContinue = false;
+                for (var key in d) {
+                    if (dropdownValues.hasOwnProperty(key) && d[key] !== dropdownValues[key]) {
+                        // console.log(d[key], dropdownValues[key]);
+                        toContinue = true;
+                        break;
+                    }
+                }
+
+                if (toContinue) return;
+
+                totalCount += 1;
+                if (d["HadHeartAttack"] == "Yes") diseaseCount += 1;
+            })
+
+            console.log(diseaseCount, totalCount)
+        }
+
+    </script>
+
+</body>
+
+</html>

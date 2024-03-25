@@ -202,12 +202,21 @@
             // P(y | X) = P(X | Y) P(Y) / P(X)
             // Naive Bayes Calculation:
             // P(y | X) = P(x_1 | y)P(x_2 | y) ... P(X_n | y)P(y) / [P(x_1)P(x_2)...P(x_n)]
+            output = {}
             for (var key in count_x) {
                 pxgy = count_xgy[key][dropdownValues[key]]/y;
                 px = count_x[key][dropdownValues[key]]/n;
-                console.log(key +", " + dropdownValues[key] + ", pxgy: " + pxgy + ", px: " + px + ", ratio: " + pxgy/px);
+
+                output[key] = {
+                    "Value": dropdownValues[key],
+                    "P(x | y)": pxgy,
+                    "P(x)": px,
+                    "Ratio": pxgy/px
+                };
+
                 pygx *= pxgy/px;
             }
+            console.log(output);
 
             pygx *= py;
 

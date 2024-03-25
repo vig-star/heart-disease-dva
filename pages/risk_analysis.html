@@ -1,0 +1,226 @@
+<!-- Estimation of cancer risk using Naive Bayes Estimation. -->
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+    <!-- add title -->
+    <title>Risk Probability</title>
+    <!-- import required libraries here -->
+    <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+    
+</head>
+
+
+<body>
+    <header>Risk of Heart Disease </header>
+
+    <div id = "dropdowns"></div>
+    <div id = "probabilities"></div>
+    
+    <script>
+        
+        // define any other global variables 
+        const numeric_vars = new Set(["BMI", "HeightInMeters", "MentalHealthDays", "PhysicalHealthDays", "SleepHours", "WeightInKilograms"]);
+        const output_vars = new Set(["HadHeartAttack"]);
+
+        Promise.all([
+            d3.dsv(",", "../data/heart_2022_no_nans.csv", d => {
+                d.BMI = +d.BMI; // Convert string to number
+                d.HeightInMeters = +d.HeightInMeters; // Convert string to number
+                d.MentalHealthDays = +d.MentalHealthDays; // Convert string to number
+                d.PhysicalHealthDays = +d.PhysicalHealthDays; // Convert string to number
+                d.SleepHours = +d.SleepHours; // Convert string to number
+                d.WeightInKilograms = +d.WeightInKilograms; // Convert string to number
+                
+                return d;
+            }),
+        ]).then(([heartData]) => {
+            ready(-1, heartData);
+        });
+        
+        function ready(error, heartData) {
+        
+            console.log(heartData);
+            
+            // --- Begin Categorical Values ---
+            // Finds all possible categorical values for each column
+            let values_dict = {};
+            heartData.forEach(d => {
+                for (var key in d) {
+                    if (!values_dict.hasOwnProperty(key)) {
+                        values_dict[key] = new Set();
+                    }
+
+                    values_dict[key].add(d[key])
+                }
+            });
+            // --- End Categorical Values ---
+
+
+            // --- Begin Variable Counts ---
+            // Finds counts for all the categorical variables and values, x, to 
+            // later calculate P(x). Also calculates all the counts of x given
+            // heart disease, to later calculate P(x | y), and finally the count of 
+            // y to calculate P(Y). This is used by the naive bayes to estimate
+            // P(y | X)
+            let count_x = {};
+            let count_xgy = {};
+            let n = 0;
+            let y = 0;
+
+            heartData.columns.forEach(d => {
+                if (!numeric_vars.has(d) && !output_vars.has(d)) {
+                    count_x[d] = {};
+                    count_xgy[d] = {};
+                    values_dict[d].forEach(e => {
+                        count_x[d][e] = 0;
+                        count_xgy[d][e] = 0;
+                    })
+                }
+            })
+
+            heartData.forEach(d => {
+                for (var key in d) {
+                    if (!numeric_vars.has(key) && !output_vars.has(key)) {
+                        count_x[key][d[key]] += 1;
+                        if (d["HadHeartAttack"] === "Yes") {
+                            count_xgy[key][d[key]] += 1;
+                        }
+                    }
+
+                }
+                n += 1;
+                if (d["HadHeartAttack"] === "Yes") {
+                    y += 1;
+                }
+            })
+            
+
+            const count = {"count_x": count_x, "count_xgy": count_xgy, "y":y, "n":n}; //Pack into dictionary for passing in function
+            // --- End Variable Counts ---
+            console.log(count_x);
+            console.log(count_xgy);
+
+            // --- Begin Dropdown Creation ---
+            // Creates dropdowns for all of the variables and fills them with 
+            // the possible values. Add event detection on update
+            let dropdownsContainer = d3.select("#dropdowns");
+
+            let dropdownDiv;
+            let dropdown;
+            heartData.columns.forEach(d => {
+                if (!numeric_vars.has(d) && !output_vars.has(d)) {
+                    dropdownDiv = dropdownsContainer.append("div").attr("id", f => {return d;});
+                    dropdownDiv.append("label").text(d + ": ");
+
+                    dropdown = dropdownDiv.append("select").on("change", _ => calculateProbaility(count));
+                    dropdown.selectAll("option")
+                        .data(Array.from(values_dict[d])) // Sample options, replace with your data
+                        .enter().append("option")
+                        .text(function(option) { return option; });
+                    
+                }
+            })
+            // --- End Dropdown Creation ---
+
+            let probabilityContainer = d3.select("#probabilities");
+
+            let naiveBayes = probabilityContainer.append("div").attr("id", "naiveBayes")
+            naiveBayes.append("label").text("Number of individuals in 100,000 that will have Heart Cancer: ");
+
+            calculateProbaility(count);
+
+        }
+
+        /*
+        * Function Estimates the probability of heart disease using the Naive Bayes Estimator
+        * A major known limitation is the assumption of independence between input variables
+        * This may result in instances where the estimated probability is greater than unity
+        * for inputs high correlation. This is currently adjusted by limiting the estimated probability
+        * to be no larger than unity.
+        * 
+        * For instance, having both diabetes and being older than 80 are two large risk factors for 
+        * heart disease. However, there is a strong covariance between old age and diabetes as well.
+        * Not adjusting for this correlation, due to Naive Bayes assumption of independence, results
+        * in the estimator "double counting" these risk factors, elevating the estimated risk.
+        * 
+        * Testing and Verification
+        * This function was notionally tested against inputs that should elevate the risk of heart cancer
+        * and it was observed to adjust as expected. If a variable is changed and you're curious why the 
+        * risk of heart disease went in the direction it did, you may look at console output to see all 
+        * of the variables and their probability of occuring and their probability of occuring given heart disease.
+        * An event will increase the risk of heart disease if it occurs more often given the result of heart disease
+        * then it would occur in the population norm.
+        * 
+        * The following continuous numeric variables are assumed to have normal distributions
+        * Height, SleepHours
+        * A limitation in this implementation is that Height is more likely bimodal, due to gender
+        * This increases the standard deviation of the distribution More or less, making this assumption for both
+        * the PDF and conditionanl PDF cancels out some of the error by shifting both means in the same direction.
+        * 
+        * The following continuous numeric variables are assumed to have log-normal distributions
+        * Weight, BMI
+        * A limitation in this implementation is that Weight is more likely bimodal, due to gender
+        * This increases the standard deviation of the distribution. More or less, making this assumption for both
+        * the PDF and conditionanl PDF cancels out some of the error by shifting both means in the same direction.
+        * 
+        * The following discrete integer numeric variables are binned to estimate probability
+        * Physical Health Days, Mental Health Days
+        * The bins are 0, 1, 2, 3, 4, [5 10], [11 20], [21 30]
+        * 
+        * Params
+        * dict: count - Count dictionary containing counts of events and results y and total count n
+        * 
+        * Returns probability of heart disease
+        */
+        function calculateProbaility(count) {
+            
+            // --- Begin Get Dropdown Values ---
+            var dropdownsContainer = d3.select("#dropdowns");
+
+            // Initialize an object to store dropdown values
+            var dropdownValues = {};
+
+            dropdownsContainer.selectAll("select").each(function() {
+                var dropdownId = d3.select(this.parentNode).attr("id"); // Get the id of the dropdown's parent div
+                var selectedValue = this.value; // Get the selected value of the dropdown
+
+                // Store the selected value in the object
+                dropdownValues[dropdownId] = selectedValue;
+            });
+            // --- End Get Dropdown Values ---
+
+            // --- Begin Naive Bayes ---
+            const count_x = count["count_x"];
+            const count_xgy = count["count_xgy"];
+            const y = count["y"];
+            const n = count["n"];
+
+            let pygx = 1;
+
+            py = y/n;
+            // Bayes Rule:
+            // P(y | X) = P(X | Y) P(Y) / P(X)
+            // Naive Bayes Calculation:
+            // P(y | X) = P(x_1 | y)P(x_2 | y) ... P(X_n | y)P(y) / [P(x_1)P(x_2)...P(x_n)]
+            for (var key in count_x) {
+                pxgy = count_xgy[key][dropdownValues[key]]/y;
+                px = count_x[key][dropdownValues[key]]/n;
+                console.log(key +", " + dropdownValues[key] + ", pxgy: " + pxgy + ", px: " + px + ", ratio: " + pxgy/px);
+                pygx *= pxgy/px;
+            }
+
+            pygx *= py;
+
+            if (pygx > 1) {pygx = 1;}
+            // --- End Naive Bayes ---
+            
+            d3.select("#naiveBayes label").text("Number of individuals in 100,000 that will have Heart Cancer: " + pygx * 100000);
+
+            return pygx;
+        }
+
+    </script>
+
+</body>
+
+</html>

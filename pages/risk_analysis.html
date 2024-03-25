@@ -70,6 +70,42 @@
                 // console.log(d);
             });
 
+            let count_x = {};
+            let count_xgy = {};
+            let n = 0;
+            let y = 0;
+
+            heartData.columns.forEach(d => {
+                if (!numeric_vars.has(d) && !output_vars.has(d)) {
+                    count_x[d] = {};
+                    count_xgy[d] = {};
+                    values_dict[d].forEach(e => {
+                        count_x[d][e] = 0;
+                        count_xgy[d][e] = 0;
+                    })
+                }
+            })
+
+            heartData.forEach(d => {
+                for (var key in d) {
+                    if (!numeric_vars.has(key) && !output_vars.has(key)) {
+                        count_x[key][d[key]] += 1;
+                        if (d["HadHeartAttack"] === "Yes") {
+                            count_xgy[key][d[key]] += 1;
+                        }
+                    }
+
+                }
+                n += 1;
+                if (d["HadHeartAttack"] === "Yes") {
+                    y += 1;
+                }
+            })
+
+            const count = {"count_x": count_x, "count_xgy": count_xgy, "y":y, "n":n};
+            console.log(count_x);
+            console.log(count_xgy);
+
             let dropdownsContainer = d3.select("#dropdowns");
 
             let dropdownDiv;
@@ -79,7 +115,7 @@
                     dropdownDiv = dropdownsContainer.append("div").attr("id", f => {return d;});
                     dropdownDiv.append("label").text(d + ": ");
 
-                    dropdown = dropdownDiv.append("select").on("change", _ => calculateProbaility(heartData, values_dict));
+                    dropdown = dropdownDiv.append("select").on("change", _ => calculateProbaility(heartData, values_dict, count));
                     dropdown.selectAll("option")
                         .data(Array.from(values_dict[d])) // Sample options, replace with your data
                         .enter().append("option")
@@ -93,11 +129,11 @@
             let naiveBayes = probabilityContainer.append("div").attr("id", "naiveBayes")
             naiveBayes.append("label").text("Number of individuals in 100,000 that will have Heart Cancer: ");
 
-            calculateProbaility(heartData, values_dict);
+            calculateProbaility(heartData, values_dict, count);
 
         }
 
-        function calculateProbaility(heartData, values_dict) {
+        function calculateProbaility(heartData, values_dict, count) {
             
             var dropdownsContainer = d3.select("#dropdowns");
 
@@ -113,42 +149,10 @@
                 dropdownValues[dropdownId] = selectedValue;
             });
 
-            // Log or use the dropdown values as needed
-            // console.log("Dropdown values:", dropdownValues);
-
-            count_x = {};
-            count_xgy = {};
-            n = 0;
-            y = 0;
-
-            heartData.columns.forEach(d => {
-                if (!numeric_vars.has(d) && !output_vars.has(d)) {
-                    count_x[d] = {};
-                    count_xgy[d] = {};
-                    values_dict[d].forEach(e => {
-                        count_x[d][e] = 0;
-                        count_xgy[d][e] = 0;
-                    })
-                }
-            })
-
-            // console.log(count_x)
-
-            heartData.forEach(d => {
-                for (var key in d) {
-                    if (!numeric_vars.has(key) && !output_vars.has(key)) {
-                        count_x[key][d[key]] += 1
-                        if (d["HadHeartAttack"] === "Yes") {
-                            count_xgy[key][d[key]] += 1
-                        }
-                    }
-
-                }
-                n += 1
-                if (d["HadHeartAttack"] === "Yes") {
-                    y += 1
-                }
-            })
+            const count_x = count["count_x"];
+            const count_xgy = count["count_xgy"];
+            const y = count["y"];
+            const n = count["n"];
 
             res = 1;
 
@@ -164,7 +168,6 @@
             res *= py;
 
             if (res > 1) {res = 1;}
-
             
             d3.select("#naiveBayes label").text("Number of individuals in 100,000 that will have Heart Cancer: " + res * 100000);
             

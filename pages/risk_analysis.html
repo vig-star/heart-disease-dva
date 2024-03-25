@@ -151,6 +151,22 @@
         * An event will increase the risk of heart disease if it occurs more often given the result of heart disease
         * then it would occur in the population norm.
         * 
+        * The following continuous numeric variables are assumed to have normal distributions
+        * Height, SleepHours
+        * A limitation in this implementation is that Height is more likely bimodal, due to gender
+        * This increases the standard deviation of the distribution More or less, making this assumption for both
+        * the PDF and conditionanl PDF cancels out some of the error by shifting both means in the same direction.
+        * 
+        * The following continuous numeric variables are assumed to have log-normal distributions
+        * Weight, BMI
+        * A limitation in this implementation is that Weight is more likely bimodal, due to gender
+        * This increases the standard deviation of the distribution. More or less, making this assumption for both
+        * the PDF and conditionanl PDF cancels out some of the error by shifting both means in the same direction.
+        * 
+        * The following discrete integer numeric variables are binned to estimate probability
+        * Physical Health Days, Mental Health Days
+        * The bins are 0, 1, 2, 3, 4, [5 10], [11 20], [21 30]
+        * 
         * Params
         * dict: count - Count dictionary containing counts of events and results y and total count n
         */

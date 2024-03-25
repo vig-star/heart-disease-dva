@@ -205,7 +205,7 @@
             for (var key in count_x) {
                 pxgy = count_xgy[key][dropdownValues[key]]/y;
                 px = count_x[key][dropdownValues[key]]/n;
-                console.log(key +", " + dropdownValues[key] + ", pxgy: " + pxgy + ", px:", px);
+                console.log(key +", " + dropdownValues[key] + ", pxgy: " + pxgy + ", px: " + px + ", ratio: " + pxgy/px);
                 pygx *= pxgy/px;
             }
 

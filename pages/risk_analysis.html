@@ -21,7 +21,51 @@
         
         // define any other global variables 
         const numeric_vars = new Set(["BMI", "HeightInMeters", "MentalHealthDays", "PhysicalHealthDays", "SleepHours", "WeightInKilograms"]);
+        const normal_vars = new Set(["HeightInMeters", "SleepHours"]);
+        const lognormal_vars = new Set(["WeightInKilograms"]);
+        const binned_vars = new Set(["MentalHealthDays"]);
         const output_vars = new Set(["HadHeartAttack"]);
+        const ignored_vars = new Set(["BMI", "PhysicalHealthDays"])
+
+        const var_conversion = {
+            "State": "What state are you located in?",
+            "Sex": "Sex", 
+            "GeneralHealth": "How would you rate your general health?",
+            "MentalHealthDays": "How many mental health days do you take a month?",
+            "LastCheckupTime": "When was the last time you received a health checkup?",
+            "PhysicalActivities": "Are you physically active?",
+            "SleepHours": "On average, how many hours of sleep do you get every night?",
+            "RemovedTeeth": "How many teeth do you have removed?",
+            "HadAngina": "Have you had Angina?",
+            "HadStroke": "Have you had a Stroke?",
+            "HadAsthma": "Do you have Asthma?",
+            "HadSkinCancer": "Have you had Skin Cancer",
+            "HadCOPD": "Have you had COPD?",
+            "HadDepressiveDisorder": "Do you have Depressive Disorder?",
+            "HadKidneyDisease": "Have you had Kidney Disease?",
+            "HadArthritis": "Do you have Arthritis?",
+            "HadDiabetes": "Have you had Diabetes?",
+            "DeafOrHardOfHearing": "Are you Deaf or Hard of Hearing?",
+            "BlindOrVisionDifficulty": "Are you Blind or have Vision Difficulty?",
+            "DifficultyConcentrating": "Do you have difficulty concentrating",
+            "DifficultyWalking": "Do you have difficulty walking?",
+            "DifficultyDressingBathing": "Do you have difficulty dressing or bathing?",
+            "DifficultyErrands": "Do you have difficulty running errands?",
+            "SmokerStatus": "Are you a smoker?",
+            "ECigaretteUsage": "Do you use E Cigarettes?",
+            "ChestScan": "Have you received a Chest Scan?",
+            "RaceEthnicityCategory": "What is your Race/Ethnicity?",
+            "AgeCategory": "What is your age category?",
+            "HeightInMeters": "What is your height in feet?",
+            "WeightInKilograms": "What is your weight in pounds?",
+            "AlcoholDrinkers": "Do you drink Alcohol?",
+            "HIVTesting": "Have you been tested for HIV?",
+            "FluVaxLast12": "Have you received the Flu vaccine in last 12 months?",
+            "PneumoVaxEver": "Have you ever received a Pneumonia Vaccine?",
+            "TetanusLast10Tdap": "Have you received a Tetanus vaccine in last 10 years?",
+            "HighRiskLastYear": "Were you considered High Risk last year?",
+            "CovidPos": "Have you tested positive for Covid-19?"
+        }
 
         Promise.all([
             d3.dsv(",", "../data/heart_2022_no_nans.csv", d => {
@@ -77,6 +121,36 @@
                         count_x[d][e] = 0;
                         count_xgy[d][e] = 0;
                     })
+                } else if (normal_vars.has(d) || lognormal_vars.has(d)) {
+                    count_x[d] = {
+                        "sum": 0,
+                        "squareSum": 0
+                    };
+                    count_xgy[d] = {
+                        "sum": 0,
+                        "squareSum": 0
+                    };
+                } else if (binned_vars.has(d)) {
+                    count_x[d] = {
+                        "0": 0,
+                        "1": 0,
+                        "2": 0,
+                        "3": 0,
+                        "4": 0,
+                        "5-10": 0,
+                        "11-20": 0,
+                        "21-30": 0
+                    };
+                    count_xgy[d] = {
+                        "0": 0,
+                        "1": 0,
+                        "2": 0,
+                        "3": 0,
+                        "4": 0,
+                        "5-10": 0,
+                        "11-20": 0,
+                        "21-30": 0
+                    };
                 }
             })
 
@@ -87,6 +161,30 @@
                         if (d["HadHeartAttack"] === "Yes") {
                             count_xgy[key][d[key]] += 1;
                         }
+                    } else if (normal_vars.has(key) || lognormal_vars.has(key)) {
+                        count_x[key]["sum"] += normal_vars.has(key) ? d[key] : Math.log(d[key]);
+                        count_x[key]["squareSum"] += normal_vars.has(key) ? d[key]**2 : Math.log(d[key])**2;
+
+                        if (d["HadHeartAttack"] === "Yes") {
+                            count_xgy[key]["sum"] += normal_vars.has(key) ? d[key] : Math.log(d[key]);
+                            count_xgy[key]["squareSum"] += normal_vars.has(key) ? d[key]**2 : Math.log(d[key])**2;
+                        }
+                    } else if (binned_vars.has(key)) {
+                        let bin;
+                        if (d[key] <= 4) {
+                            bin = d[key].toString();
+                        } else if (d[key] <= 10) {
+                            bin = "5-10";
+                        } else if (d[key] <= 20) {
+                            bin = "11-20";
+                        } else if (d[key] <= 30) {
+                            bin = "21-30";
+                        }
+                        // Increment count for the bin
+                        count_x[key][bin] += 1;
+                        if (d["HadHeartAttack"] === "Yes") {
+                            count_xgy[key][bin] += 1;
+                        }
                     }
 
                 }
@@ -94,8 +192,25 @@
                 if (d["HadHeartAttack"] === "Yes") {
                     y += 1;
                 }
-            })
-            
+            });
+
+            const unionSet = new Set([...normal_vars, ...lognormal_vars]);
+            unionSet.forEach(key => {
+                count_x[key]["mean"] = count_x[key]["sum"]/n;
+                count_x[key]["std"] = Math.sqrt(count_x[key]["squareSum"]/n - count_x[key]["mean"]**2);
+
+                count_xgy[key]["mean"] = count_xgy[key]["sum"]/y;
+                count_xgy[key]["std"] = Math.sqrt(count_xgy[key]["squareSum"]/y - count_xgy[key]["mean"]**2);
+
+                // Delete 'sum' and 'squareSum' keys
+                delete count_x[key]["sum"];
+                delete count_x[key]["squareSum"];
+
+                delete count_xgy[key]["sum"];
+                delete count_xgy[key]["squareSum"];
+            });
+
+ 
 
             const count = {"count_x": count_x, "count_xgy": count_xgy, "y":y, "n":n}; //Pack into dictionary for passing in function
             // --- End Variable Counts ---
@@ -112,7 +227,7 @@
             heartData.columns.forEach(d => {
                 if (!numeric_vars.has(d) && !output_vars.has(d)) {
                     dropdownDiv = dropdownsContainer.append("div").attr("id", f => {return d;});
-                    dropdownDiv.append("label").text(d + ": ");
+                    dropdownDiv.append("label").text(var_conversion[d] + " ");
 
                     dropdown = dropdownDiv.append("select").on("change", _ => calculateProbaility(count));
                     dropdown.selectAll("option")
@@ -120,6 +235,28 @@
                         .enter().append("option")
                         .text(function(option) { return option; });
                     
+                } else if (numeric_vars.has(d) && !ignored_vars.has(d)) {
+                    dropdownDiv = dropdownsContainer.append("div").attr("id", f => {return d;});
+                    dropdownDiv.append("label").text(var_conversion[d] + " ");
+
+                    const textBox = dropdownDiv.append("input")
+                                            .attr("type", "text")
+                                            .attr("value", _ => {
+                                                if (normal_vars.has(d)) {
+                                                    if (d == "HeightInMeters") {
+                                                        return (count_x[d]["mean"] * 3.28084).toString().slice(0, 5);
+                                                    } else {
+                                                        return count_x[d]["mean"].toString().slice(0, 5);
+                                                    }
+                                                } else if (lognormal_vars.has(d)) {
+                                                    return (Math.exp(count_x[d]["mean"]) * 2.20462).toString().slice(0, 5);
+                                                } else {
+                                                    return "0";
+                                                }
+                                            })
+                                            .attr("width", "50px")
+                                            .attr("maxlength", "5")
+                                            .on("input", _ => calculateProbaility(count))
                 }
             })
             // --- End Dropdown Creation ---
@@ -127,7 +264,7 @@
             let probabilityContainer = d3.select("#probabilities");
 
             let naiveBayes = probabilityContainer.append("div").attr("id", "naiveBayes")
-            naiveBayes.append("label").text("Number of individuals in 100,000 that will have Heart Cancer: ");
+            naiveBayes.append("label").text("Number of individuals in 100,000 that will have Heart Disease: ");
 
             calculateProbaility(count);
 
@@ -160,14 +297,17 @@
         * the PDF and conditionanl PDF cancels out some of the error by shifting both means in the same direction.
         * 
         * The following continuous numeric variables are assumed to have log-normal distributions
-        * Weight, BMI
+        * Weight
         * A limitation in this implementation is that Weight is more likely bimodal, due to gender
         * This increases the standard deviation of the distribution. More or less, making this assumption for both
         * the PDF and conditionanl PDF cancels out some of the error by shifting both means in the same direction.
         * 
         * The following discrete integer numeric variables are binned to estimate probability
-        * Physical Health Days, Mental Health Days
+        * Mental Health Days
         * The bins are 0, 1, 2, 3, 4, [5 10], [11 20], [21 30]
+        * 
+        * The following variables are removed due to being key violators of the independence assumption
+        * Physical Health Days (Physical Activities), BMI (Weight + Height),
         * 
         * Params
         * dict: count - Count dictionary containing counts of events and results y and total count n
@@ -182,7 +322,7 @@
             // Initialize an object to store dropdown values
             var dropdownValues = {};
 
-            dropdownsContainer.selectAll("select").each(function() {
+            dropdownsContainer.selectAll("select, input").each(function() {
                 var dropdownId = d3.select(this.parentNode).attr("id"); // Get the id of the dropdown's parent div
                 var selectedValue = this.value; // Get the selected value of the dropdown
 
@@ -198,28 +338,65 @@
             const n = count["n"];
 
             let pygx = 1;
-
+            let px;
+            let pxgy = 1;
             py = y/n;
             // Bayes Rule:
             // P(y | X) = P(X | Y) P(Y) / P(X)
             // Naive Bayes Calculation:
             // P(y | X) = P(x_1 | y)P(x_2 | y) ... P(X_n | y)P(y) / [P(x_1)P(x_2)...P(x_n)]
             output = {}
+            console.log(dropdownValues);
             conditional_probabilities = {};
             for (var key in count_x) {
-                pxgy = count_xgy[key][dropdownValues[key]]/y;
-                px = count_x[key][dropdownValues[key]]/n;
-                ratio = pxgy/px
-                pygx_value = ratio * py
-                output[key] = {
-                    "Value": dropdownValues[key],
-                    "P(x | y)": pxgy,
-                    "P(x)": px, 
-                    "Ratio": ratio,
-                    "P(y | x)": pygx_value 
-                };
-                pygx *= ratio;
+                
+                if (!numeric_vars.has(key) && !output_vars.has(key)) {
+                    pxgy = count_xgy[key][dropdownValues[key]]/y;
+                    px = count_x[key][dropdownValues[key]]/n;
+
+                    pygx *= pxgy/px;
+                } else if (normal_vars.has(key)) {
+                    x = dropdownValues[key];
+                    x = (key == "HeightInMeters") ? x * 0.3048 : x;
+                    
+                    px = 1/(Math.sqrt(2 * Math.PI) * count_x[key]["std"]) * Math.exp(-0.5* ((x-count_x[key]["mean"])/count_x[key]["std"])**2);
+                    pxgy = 1/(Math.sqrt(2 * Math.PI) * count_xgy[key]["std"]) * Math.exp(-0.5* ((x-count_xgy[key]["mean"])/count_xgy[key]["std"])**2);
+
+                    pygx *= pxgy/px;
+                } else if (lognormal_vars.has(key)) {
+                    x = dropdownValues[key];
+                    x = (key == "WeightInKilograms") ? x * 0.453592 : x;
+                    
+                    px = 1/(x * Math.sqrt(2 * Math.PI) * count_x[key]["std"]) * Math.exp(-0.5* ((Math.log(x)-count_x[key]["mean"])/count_x[key]["std"])**2);
+                    pxgy = 1/(x * Math.sqrt(2 * Math.PI) * count_xgy[key]["std"]) * Math.exp(-0.5* ((Math.log(x)-count_xgy[key]["mean"])/count_xgy[key]["std"])**2);
+
+                    pygx *= pxgy/px;
+                } else if (binned_vars.has(key)) {
+                    let bin;
+                    let val = dropdownValues[key]
+                    if (val <= 4) {
+                        bin = val.toString();
+                    } else if (val <= 10) {
+                        bin = "5-10";
+                    } else if (val <= 20) {
+                        bin = "11-20";
+                    } else if (val <= 30) {
+                        bin = "21-30";
+                    }
+                    pxgy = count_xgy[key][bin]/y;
+                    px = count_x[key][bin]/n;
+
+                    pygx *= pxgy/px;
+                }
+                pygx_value = pxgy/px * py
                 conditional_probabilities[key] = pygx_value
+                output[key] = {
+                        "Value": dropdownValues[key],
+                        "P(x | y)": pxgy,
+                        "P(x)": px,
+                        "Ratio": pxgy/px,
+                        "P(y | x)": pygx_value
+                };
             }
             console.log(output);
             console.log(conditional_probabilities);
@@ -229,8 +406,7 @@
             if (pygx > 1) {pygx = 1;}
             // --- End Naive Bayes ---
             
-            d3.select("#naiveBayes label").text("Number of individuals in 100,000 that will have Heart Cancer: " + pygx * 100000);
-            
+            d3.select("#naiveBayes label").text("Number of individuals in 100,000 that will have Heart Disease: " + (pygx * 100000).toFixed(0));
             makePieChart(conditional_probabilities);
 
             return pygx;

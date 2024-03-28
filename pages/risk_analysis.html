@@ -15,6 +15,7 @@
 
     <div id = "dropdowns"></div>
     <div id = "probabilities"></div>
+    <div id="pie-chart-container"></div>
     
     <script>
         
@@ -97,6 +98,7 @@
                     values_dict[key].add(d[key])
                 }
             });
+            console.log(values_dict);
             // --- End Categorical Values ---
 
 
@@ -337,7 +339,7 @@
 
             let pygx = 1;
             let px;
-
+            let pxgy = 1;
             py = y/n;
             // Bayes Rule:
             // P(y | X) = P(X | Y) P(Y) / P(X)
@@ -345,7 +347,9 @@
             // P(y | X) = P(x_1 | y)P(x_2 | y) ... P(X_n | y)P(y) / [P(x_1)P(x_2)...P(x_n)]
             output = {}
             console.log(dropdownValues);
+            conditional_probabilities = {};
             for (var key in count_x) {
+                
                 if (!numeric_vars.has(key) && !output_vars.has(key)) {
                     pxgy = count_xgy[key][dropdownValues[key]]/y;
                     px = count_x[key][dropdownValues[key]]/n;
@@ -384,24 +388,68 @@
 
                     pygx *= pxgy/px;
                 }
-
+                pygx_value = pxgy/px * py
+                conditional_probabilities[key] = pygx_value
                 output[key] = {
                         "Value": dropdownValues[key],
                         "P(x | y)": pxgy,
                         "P(x)": px,
-                        "Ratio": pxgy/px
+                        "Ratio": pxgy/px,
+                        "P(y | x)": pygx_value
                 };
             }
             console.log(output);
-
+            console.log(conditional_probabilities);
             pygx *= py;
+            console.log(pygx);
 
             if (pygx > 1) {pygx = 1;}
             // --- End Naive Bayes ---
             
             d3.select("#naiveBayes label").text("Number of individuals in 100,000 that will have Heart Disease: " + (pygx * 100000).toFixed(0));
+            makePieChart(conditional_probabilities);
 
             return pygx;
+        }
+
+        function makePieChart(data) {
+            const dataArray = Object.entries(data).map(([key, value]) => ({ category: key, value: value }));
+
+            const width = 750;
+            const height = 750;
+            const radius = Math.min(width, height) / 2;
+
+            const color = d3.scaleOrdinal(d3.schemeCategory10);
+            d3.select("#pie-chart-container").selectAll("svg").remove()
+            const svg = d3.select("#pie-chart-container")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .append("g")
+            .attr("transform", `translate(${width / 2},${height / 2})`);
+
+            const pie = d3.pie()
+            .value(d => d.value);
+
+            const arc = d3.arc()
+            .innerRadius(0)
+            .outerRadius(radius);
+
+            const arcs = svg.selectAll("arc")
+            .data(pie(dataArray))
+            .enter()
+            .append("g");
+
+            arcs.append("path")
+            .attr("d", arc)
+            .attr("fill", d => color(d.data.category));
+
+            // Add labels
+            arcs.append("text")
+            .attr("transform", d => `translate(${arc.centroid(d)}) rotate(${(d.startAngle + d.endAngle) * 90 / Math.PI - 90})`)
+            .attr("text-anchor", "middle")
+            .text(d => d.data.category);
+
         }
 
     </script>

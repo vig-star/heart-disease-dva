@@ -35,7 +35,6 @@
             "LastCheckupTime": "When was the last time you received a health checkup?",
             "PhysicalActivities": "Are you physically active?",
             "SleepHours": "On average, how many hours of sleep do you get every night?",
-            "RemovedTeeth": "How many teeth do you have removed?",
             "HadAngina": "Have you had Angina?",
             "HadStroke": "Have you had a Stroke?",
             "HadAsthma": "Do you have Asthma?",
@@ -45,12 +44,7 @@
             "HadKidneyDisease": "Have you had Kidney Disease?",
             "HadArthritis": "Do you have Arthritis?",
             "HadDiabetes": "Have you had Diabetes?",
-            "DeafOrHardOfHearing": "Are you Deaf or Hard of Hearing?",
-            "BlindOrVisionDifficulty": "Are you Blind or have Vision Difficulty?",
             "DifficultyConcentrating": "Do you have difficulty concentrating",
-            "DifficultyWalking": "Do you have difficulty walking?",
-            "DifficultyDressingBathing": "Do you have difficulty dressing or bathing?",
-            "DifficultyErrands": "Do you have difficulty running errands?",
             "SmokerStatus": "Are you a smoker?",
             "ECigaretteUsage": "Do you use E Cigarettes?",
             "ChestScan": "Have you received a Chest Scan?",
@@ -76,20 +70,29 @@
                 d.SleepHours = +d.SleepHours; // Convert string to number
                 d.WeightInKilograms = +d.WeightInKilograms; // Convert string to number
                 
+                delete d.RemovedTeeth;
+                delete d.DeafOrHardOfHearing
+                delete d.BlindOrVisionDifficulty
+                delete d.DifficultyDressingBathing
+                delete d.DifficultyErrands
+                delete d.DifficultyWalking
                 return d;
             }),
         ]).then(([heartData]) => {
+            heartData.columns = Object.keys(heartData[0]);
+            
             ready(-1, heartData);
         });
         
         function ready(error, heartData) {
-        
-            console.log(heartData);
-            
+           
             // --- Begin Categorical Values ---
             // Finds all possible categorical values for each column
+            console.log(heartData);
+            console.log(heartData.columns);
             let values_dict = {};
             heartData.forEach(d => {
+                // console.log(d);
                 for (var key in d) {
                     if (!values_dict.hasOwnProperty(key)) {
                         values_dict[key] = new Set();
@@ -98,7 +101,7 @@
                     values_dict[key].add(d[key])
                 }
             });
-            console.log(values_dict);
+            // console.log(values_dict);
             // --- End Categorical Values ---
 
 
@@ -112,11 +115,11 @@
             let count_xgy = {};
             let n = 0;
             let y = 0;
-
             heartData.columns.forEach(d => {
                 if (!numeric_vars.has(d) && !output_vars.has(d)) {
                     count_x[d] = {};
                     count_xgy[d] = {};
+                    // console.log(d);
                     values_dict[d].forEach(e => {
                         count_x[d][e] = 0;
                         count_xgy[d][e] = 0;
@@ -214,8 +217,8 @@
 
             const count = {"count_x": count_x, "count_xgy": count_xgy, "y":y, "n":n}; //Pack into dictionary for passing in function
             // --- End Variable Counts ---
-            console.log(count_x);
-            console.log(count_xgy);
+            // console.log(count_x);
+            // console.log(count_xgy);
 
             // --- Begin Dropdown Creation ---
             // Creates dropdowns for all of the variables and fills them with 
@@ -228,7 +231,7 @@
                 if (!numeric_vars.has(d) && !output_vars.has(d)) {
                     dropdownDiv = dropdownsContainer.append("div").attr("id", f => {return d;});
                     dropdownDiv.append("label").text(var_conversion[d] + " ");
-
+                    // console.log(var_conversion[d])
                     dropdown = dropdownDiv.append("select").on("change", _ => calculateProbaility(count));
                     dropdown.selectAll("option")
                         .data(Array.from(values_dict[d])) // Sample options, replace with your data
@@ -346,7 +349,7 @@
             // Naive Bayes Calculation:
             // P(y | X) = P(x_1 | y)P(x_2 | y) ... P(X_n | y)P(y) / [P(x_1)P(x_2)...P(x_n)]
             output = {}
-            console.log(dropdownValues);
+            // console.log(dropdownValues);
             conditional_probabilities = {};
             for (var key in count_x) {
                 
@@ -398,10 +401,10 @@
                         "P(y | x)": pygx_value
                 };
             }
-            console.log(output);
-            console.log(conditional_probabilities);
+            // console.log(output);
+            // console.log(conditional_probabilities);
             pygx *= py;
-            console.log(pygx);
+            // console.log(pygx);
 
             if (pygx > 1) {pygx = 1;}
             // --- End Naive Bayes ---

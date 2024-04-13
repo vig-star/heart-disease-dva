@@ -8,7 +8,11 @@ On the root directory, run the Python server:
 python -m http.server
 ```
 
-This will run a local server on port 8000 where you can access the application. Go on `localhost:8000` and access the pages you wish to view.
+This will run a local server on port 8000 where you can access the application. Go on `localhost:8000` and access the pages you wish to view. The pages include our Bayesian estimator, results from our model, as well as correlation between attributes.
+
+## View the trained and fine-tuned model
+
+If you want to check out the notebook where the data was preprocessed and the model was trained, you may view `model/CSE_6242_Final.ipynb`.
 
 ## Running the backend Flask server
 

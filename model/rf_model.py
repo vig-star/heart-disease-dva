@@ -2,10 +2,12 @@ from flask import Flask, request, jsonify
 import joblib
 import pandas
 from sklearn.preprocessing import LabelEncoder
+from flask_cors import CORS, cross_origin
 
 app = Flask(__name__)
 
 @app.route('/predict', methods=['POST'])
+@cross_origin(supports_credentials=True)
 def predict():
     try:
         # get data

@@ -16,7 +16,9 @@
     <div id = "dropdowns"></div>
     <div id = "probabilities"></div>
     <div id="pie-chart-container"></div>
-    
+    <!-- <a href="results.html"> -->
+     <button style="background-color: blue; color: white;" id="result" onclick="checkResults()">Check Results</button>
+    <!-- </a> -->
     <script>
         
         // define any other global variables 
@@ -31,6 +33,7 @@
             "State": "What state are you located in?",
             "Sex": "Sex", 
             "GeneralHealth": "How would you rate your general health?",
+            "PhysicalHealthDays": "How many physical health days do you take a month?",
             "MentalHealthDays": "How many mental health days do you take a month?",
             "LastCheckupTime": "When was the last time you received a health checkup?",
             "PhysicalActivities": "Are you physically active?",
@@ -50,15 +53,16 @@
             "ChestScan": "Have you received a Chest Scan?",
             "RaceEthnicityCategory": "What is your Race/Ethnicity?",
             "AgeCategory": "What is your age category?",
-            "HeightInMeters": "What is your height in feet?",
-            "WeightInKilograms": "What is your weight in pounds?",
+            "HeightInMeters": "What is your height in meters?",
+            "WeightInKilograms": "What is your weight in kilograms?",
             "AlcoholDrinkers": "Do you drink Alcohol?",
             "HIVTesting": "Have you been tested for HIV?",
             "FluVaxLast12": "Have you received the Flu vaccine in last 12 months?",
             "PneumoVaxEver": "Have you ever received a Pneumonia Vaccine?",
             "TetanusLast10Tdap": "Have you received a Tetanus vaccine in last 10 years?",
             "HighRiskLastYear": "Were you considered High Risk last year?",
-            "CovidPos": "Have you tested positive for Covid-19?"
+            "CovidPos": "Have you tested positive for Covid-19?",
+            "BMI": "What's your BMI?"
         }
 
         Promise.all([
@@ -83,6 +87,94 @@
             
             ready(-1, heartData);
         });
+
+        async function checkResults() {
+            const dropdownsContainer = d3.select("#dropdowns");
+            let record = {};
+            // Loop through each dropdown and input field to retrieve selected values
+            dropdownsContainer.selectAll("select, input").each(function() {
+                const dropdownId = d3.select(this.parentNode).attr("id"); // Get the id of the dropdown's parent div
+                const selectedValue = this.value; // Get the selected value of the dropdown
+
+                // Add the selected value to the record object with the corresponding key
+                record[dropdownId] = selectedValue;
+            });
+            record["MentalHealthDays"] = parseInt(record["MentalHealthDays"])
+            record["HeightInMeters"] = parseInt(record["HeightInMeters"])
+            record["SleepHours"] = parseInt(record["SleepHours"])
+            record["WeightInKilograms"] = parseInt(record["WeightInKilograms"])
+            console.log(record);
+            // var raw = JSON.stringify({
+            //     "record": {
+            //         "State": "Alabama",
+            //         "Sex": "Male",
+            //         "GeneralHealth": "Fair",
+            //         "PhysicalHealthDays": 5,
+            //         "MentalHealthDays": 0,
+            //         "LastCheckupTime": "Within past year (anytime less than 12 months ago)",
+            //         "PhysicalActivities": "Yes",
+            //         "SleepHours": 1,
+            //         "RemovedTeeth": "1 to 5",
+            //         "HadAngina": "Yes",
+            //         "HadStroke": "No",
+            //         "HadAsthma": "No",
+            //         "HadSkinCancer": "Yes",
+            //         "HadCOPD": "No",
+            //         "HadDepressiveDisorder": "No",
+            //         "HadKidneyDisease": "No",
+            //         "HadArthritis": "No",
+            //         "HadDiabetes": "Yes",
+            //         "DeafOrHardOfHearing": "No",
+            //         "BlindOrVisionDifficulty": "No",
+            //         "DifficultyConcentrating": "No",
+            //         "DifficultyWalking": "No",
+            //         "DifficultyDressingBathing": "No",
+            //         "DifficultyErrands": "No",
+            //         "SmokerStatus": "Never smoked",
+            //         "ECigaretteUsage": "Never used e-cigarettes in my entire life",
+            //         "ChestScan": "Yes",
+            //         "RaceEthnicityCategory": "White only, Non-Hispanic",
+            //         "AgeCategory": "Age 75 to 79",
+            //         "HeightInMeters": 1.75,
+            //         "WeightInKilograms": 74.84,
+            //         "BMI": 24.37,
+            //         "AlcoholDrinkers": "No",
+            //         "HIVTesting": "Yes",
+            //         "FluVaxLast12": "Yes",
+            //         "PneumoVaxEver": "No",
+            //         "TetanusLast10Tdap": "No, did not receive any tetanus shot in the past 10 years",
+            //         "HighRiskLastYear": "No",
+            //         "CovidPos": "Yes"
+            //     }
+            // });
+            const raw = JSON.stringify({ "record": record });
+            var myHeaders = new Headers();
+            myHeaders.append("Content-Type", "application/json");
+
+            var requestOptions = {
+                method: 'POST',
+                headers: myHeaders,
+                body: raw,
+                redirect: 'follow'
+            };
+
+            try {
+                const response = await fetch("http://localhost:5000/predict", requestOptions);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok.');
+                }
+                const result = await response.text();
+
+                var resultP = JSON.parse(result);
+                console.log(resultP["prediction"]);
+                localStorage.setItem('predictionResult', resultP["prediction"]);
+
+                window.location.href = 'results.html';
+            } catch (error) {
+                console.log('Fetch error:', error);
+                // Handle error if needed
+            }
+        }
         
         function ready(error, heartData) {
            
@@ -238,7 +330,7 @@
                         .enter().append("option")
                         .text(function(option) { return option; });
                     
-                } else if (numeric_vars.has(d) && !ignored_vars.has(d)) {
+                } else if (numeric_vars.has(d)) {
                     dropdownDiv = dropdownsContainer.append("div").attr("id", f => {return d;});
                     dropdownDiv.append("label").text(var_conversion[d] + " ");
 
@@ -410,6 +502,7 @@
             // --- End Naive Bayes ---
             
             d3.select("#naiveBayes label").text("Number of individuals in 100,000 that will have Heart Disease: " + (pygx * 100000).toFixed(0));
+            console.log(conditional_probabilities);
             makePieChart(conditional_probabilities);
 
             return pygx;

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Risk Probability Result</title>
+    <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+  </head>
+
+  <body>
+    <header>Results: Risk of Heart Attack</header>
+
+    <!-- Display prediction result -->
+    <label id="val">Predicting ...</label>
+
+    <!-- Container for the pie chart -->
+    <div id="pie-chart-container"></div>
+
+    <!-- JavaScript for rendering pie chart -->
+    <script>
+      let featureimportance = {
+        State: 0.02933443896472454,
+        Sex: 0.029637716710567474,
+        GeneralHealth: 0.029688579961657524,
+        PhysicalHealthDays: 0.02997865341603756,
+        MentalHealthDays: 0.029337940737605095,
+        LastCheckupTime: 0.029798012226819992,
+        PhysicalActivities: 0.029604293406009674,
+        SleepHours: 0.029379144310951233,
+        HadAngina: 0.04432046413421631,
+        HadStroke: 0.03100547380745411,
+        HadAsthma: 0.02931283414363861,
+        HadSkinCancer: 0.029328282922506332,
+        HadCOPD: 0.02973254956305027,
+        HadDepressiveDisorder: 0.029314551502466202,
+        HadKidneyDisease: 0.02947290800511837,
+        HadArthritis: 0.03066699393093586,
+        HadDiabetes: 0.03073950856924057,
+        DifficultyConcentrating: 0.029351145029067993,
+        SmokerStatus: 0.029956335201859474,
+        ECigaretteUsage: 0.02931501343846321,
+        ChestScan: 0.03356216847896576,
+        RaceEthnicityCategory: 0.029315264895558357,
+        AgeCategory: 0.033494751900434494,
+        HeightInMeters: 0.029357189312577248,
+        WeightInKilograms: 0.029359055683016777,
+        BMI: 0.029377546161413193,
+        AlcoholDrinkers: 0.029408900067210197,
+        HIVTesting: 0.02931305207312107,
+        FluVaxLast12: 0.02932504005730152,
+        PneumoVaxEver: 0.030266961082816124,
+        TetanusLast10Tdap: 0.029322264716029167,
+        HighRiskLastYear: 0.029314760118722916,
+        CovidPos: 0.029308196157217026,
+      };
+
+      const predictionResult = localStorage.getItem("predictionResult");
+
+      if (predictionResult === "1") {
+        document.getElementById("val").textContent =
+          "Yes, you have a high risk";
+      } else {
+        document.getElementById("val").textContent =
+          "No, you don't have a high risk";
+      }
+
+      makePieChart(featureimportance);
+
+      function makePieChart(data) {
+        const dataArray = Object.entries(data).map(([key, value]) => ({
+          category: key,
+          value: value,
+        }));
+
+        const width = 600; // Adjust the width of the SVG container
+        const height = 600; // Adjust the height of the SVG container
+        const radius = Math.min(width, height) / 2;
+
+        const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+        const svg = d3
+          .select("#pie-chart-container")
+          .append("svg")
+          .attr("width", width)
+          .attr("height", height)
+          .append("g")
+          .attr("transform", `translate(${width / 2},${height / 2})`);
+
+        const pie = d3.pie().value((d) => d.value);
+
+        const arc = d3.arc().innerRadius(0).outerRadius(radius);
+
+        const arcs = svg
+          .selectAll("arc")
+          .data(pie(dataArray))
+          .enter()
+          .append("g");
+
+        arcs
+          .append("path")
+          .attr("d", arc)
+          .attr("fill", (d) => color(d.data.category));
+
+        // Add labels
+        arcs
+          .append("text")
+          .attr(
+            "transform",
+            (d) =>
+              `translate(${arc.centroid(d)}) rotate(${
+                ((d.startAngle + d.endAngle) * 90) / Math.PI - 90
+              })`
+          )
+          .attr("text-anchor", "middle")
+          .text((d) => d.data.category);
+      }
+    </script>
+  </body>
+</html>

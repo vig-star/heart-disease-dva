@@ -6,19 +6,85 @@
     <title>Risk Probability</title>
     <!-- import required libraries here -->
     <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+
+    <style>
+        body {
+            font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #eac9c1;
+        }
+        header {
+            background-color: #996d5f;
+            color: #fff;
+            text-align: center;
+            padding: 30px 0; 
+            margin-bottom: 20px;
+            font-family: Georgia, 'Times New Roman', Times, serif;
+            font-size: 28px; 
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 75px;
+            padding: 0 10px; 
+        }
+        .form-group, .probabilities {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select, input[type="text"] {
+            width: 100%; 
+            padding: 8px; 
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 13px; 
+        }
+        button {
+            background-color: #996d5f;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            font-family: Georgia, 'Times New Roman', Times, serif;
+        }
+        button:hover {
+            background-color: #4c3d36;
+        }
+        #pie-chart-container {
+            text-align: center;
+        }
+        svg {
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
     
 </head>
-
 
 <body>
     <header>Risk of Heart Disease </header>
 
-    <div id = "dropdowns"></div>
-    <div id = "probabilities"></div>
-    <div id="pie-chart-container"></div>
-    <!-- <a href="results.html"> -->
-     <button style="background-color: blue; color: white;" id="result" onclick="checkResults()">Check Results</button>
-    <!-- </a> -->
+    <div class="container">
+        <div class="form-group" id="dropdowns"></div>
+        <div class="probabilities">
+            <div id="probabilities"></div>
+            <div id="pie-chart-container"></div>
+        </div>
+    </div>
+    <button id="result" onclick="checkResults()">Check Results</button>
+    
     <script>
         
         // define any other global variables 
@@ -159,7 +225,7 @@
             };
 
             try {
-                const response = await fetch("http://localhost:5000/predict", requestOptions);
+                const response = await fetch("http://localhost:5400/predict", requestOptions);
                 if (!response.ok) {
                     throw new Error('Network response was not ok.');
                 }
@@ -511,11 +577,12 @@
         function makePieChart(data) {
             const dataArray = Object.entries(data).map(([key, value]) => ({ category: key, value: value }));
 
-            const width = 750;
-            const height = 750;
+            const width = 650;
+            const height = 650;
             const radius = Math.min(width, height) / 2;
 
-            const color = d3.scaleOrdinal(d3.schemeCategory10);
+            const customColors = ["#797d62", "#9b9b7a", "#d9ae94", "#f1dca7", "#ffcb69", "#d08c60", "#997b66", "#ad9585", "#bdaa9d", "#cabbb1"];
+            const color = d3.scaleOrdinal().range(customColors);
             d3.select("#pie-chart-container").selectAll("svg").remove()
             const svg = d3.select("#pie-chart-container")
             .append("svg")

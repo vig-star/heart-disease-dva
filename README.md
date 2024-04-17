@@ -12,20 +12,21 @@ This will run a local server on port 8000 where you can access the application. 
 
 ## View the trained and fine-tuned model
 
-If you want to check out the notebook where the data was preprocessed and the model was trained, you may view `model/CSE_6242_Final.ipynb`.
+If you want to check out the notebook where the data was preprocessed and the model was trained, you may view `model/CSE_6242_Project.ipynb`.
 
 ## Running the backend Flask server
 
 Install the following packages and versions using `conda` (if you already have them, please remove them before using `conda remove <package>`):
 
 ```
-conda install scikit-learn=1.2.
+conda install scikit-learn=1.2.2
 conda install conda-forge::joblib
 conda install pandas=2.0.3
 conda install flask
+conda install flask_cors
 ```
 
-On the `model/` directory, run the Python Flask server:
+On a separate window, navigate to the `model/` directory and run the Python Flask server:
 
 ```
 flask run --no-debugger

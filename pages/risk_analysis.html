@@ -234,7 +234,7 @@
             };
 
             try {
-                const response = await fetch("http://localhost:5400/predict", requestOptions);
+                const response = await fetch("http://localhost:5000/predict", requestOptions);
                 if (!response.ok) {
                     throw new Error('Network response was not ok.');
                 }

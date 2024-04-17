@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import joblib
 import pandas
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 from flask_cors import CORS, cross_origin
 
 app = Flask(__name__)
@@ -16,6 +16,8 @@ def predict():
                         "DifficultyErrands", "DifficultyWalking"]
         raw = raw.drop(unimportant_features, axis=1)
         encoder = LabelEncoder()
+        standard_scaler = StandardScaler()
+        continuous_cols = ["PhysicalHealthDays", "MentalHealthDays", "SleepHours", "HeightInMeters", "WeightInKilograms", "BMI"]
         X = raw.drop("HadHeartAttack", axis=1)
 
         # make sure to put a dictionary/object mapping X column to raw value in record
@@ -28,9 +30,12 @@ def predict():
 
         # encode record by fitting to X data
         for i in X.columns:
-            encoder = LabelEncoder()
-            encoder.fit(X[i])
-            input_data[i] = encoder.transform([input_data[i]])[0]
+            if i in continuous_cols:
+                standard_scaler.fit(X[i].values.reshape(-1, 1))
+                input_data[i] = standard_scaler.transform([[input_data[i]]])[0][0]
+            else:
+                encoder.fit(X[i])
+                input_data[i] = encoder.transform([input_data[i]])[0]
         
         print(input_data)
         
@@ -47,6 +52,7 @@ def predict():
         return jsonify({'prediction': int(prediction)}), 200
     except Exception as e:
         # handle any errors
+        print(input_data, e)
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':

@@ -92,10 +92,12 @@
       const resultLabel = document.getElementById("val");
 
       if (predictionResult === "1") {
-        resultLabel.textContent = "Yes, you have a high risk";
+        resultLabel.textContent =
+          "Yes, you have a high risk to have a heart attack!";
         resultLabel.classList.add("high-risk");
       } else {
-        resultLabel.textContent = "No, you don't have a high risk";
+        resultLabel.textContent =
+          "No, you don't have a high risk to have a heart attack!";
         resultLabel.classList.add("low-risk");
       }
 

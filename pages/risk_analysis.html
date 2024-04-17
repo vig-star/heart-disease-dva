@@ -69,6 +69,15 @@
             display: block;
             margin: 0 auto;
         }
+        .tooltip {
+            position: absolute;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+            pointer-events: none; /* Ensure the tooltip doesn't interfere with hover events */
+            opacity: 0;
+        }
     </style>
     
 </head>
@@ -605,7 +614,17 @@
 
             arcs.append("path")
             .attr("d", arc)
-            .attr("fill", d => color(d.data.category));
+            .attr("fill", d => color(d.data.category))
+            .on("mouseover", function(d) {
+                const percent = (d.endAngle - d.startAngle) / (2 * Math.PI) * 100;
+                tooltip.transition().duration(200).style("opacity", .9);
+                tooltip.html(`${d.data.category}: ${percent.toFixed(2)}%`)
+                .style("left", (d3.event.pageX) + "px")
+                .style("top", (d3.event.pageY - 28) + "px");
+            })
+            .on("mouseout", function(d) {
+                tooltip.transition().duration(500).style("opacity", 0);
+            });
 
             // Add labels
             arcs.append("text")
@@ -613,6 +632,9 @@
             .attr("text-anchor", "middle")
             .text(d => d.data.category);
 
+            const tooltip = d3.select("#pie-chart-container").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
         }
 
     </script>

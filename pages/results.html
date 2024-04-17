@@ -1,50 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="utf-8" />
     <title>Risk Probability Result</title>
     <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
 
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #eac9c1;
-            text-align: center;
-        }
-        header {
-            background-color: #996d5f;
-            color: #fff;
-            text-align: center;
-            padding: 30px 0; 
-            margin-bottom: 20px;
-            font-family: Georgia, 'Times New Roman', Times, serif;
-            font-size: 28px; 
-        }
-        #val {
-            font-size: 20px;
-            margin-bottom: 20px;
-            text-align: center; 
-        }
-        #pie-chart-container {
-            text-align: center;
-            margin-top: 20px; 
-        }
-        svg {
-            display: block;
-            margin: 0 auto;
-        }
-        .high-risk {
-            color: #800000;
-        }
-        .low-risk {
-            color: #797d62;
-        }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #eac9c1;
+        text-align: center;
+      }
+      header {
+        background-color: #996d5f;
+        color: #fff;
+        text-align: center;
+        padding: 30px 0;
+        margin-bottom: 20px;
+        font-family: Georgia, "Times New Roman", Times, serif;
+        font-size: 28px;
+      }
+      #val {
+        font-size: 20px;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+      #pie-chart-container {
+        text-align: center;
+        margin-top: 20px;
+      }
+      svg {
+        display: block;
+        margin: 0 auto;
+      }
+      .high-risk {
+        color: #800000;
+      }
+      .low-risk {
+        color: #797d62;
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     <header>Results: Risk of Heart Attack</header>
 
     <label id="val">Predicting ...</label>
@@ -111,7 +111,18 @@
         const height = 600; // Adjust the height of the SVG container
         const radius = Math.min(width, height) / 2;
 
-        const customColors = ["#797d62", "#9b9b7a", "#d9ae94", "#f1dca7", "#ffcb69", "#d08c60", "#997b66", "#ad9585", "#bdaa9d", "#cabbb1"];
+        const customColors = [
+          "#797d62",
+          "#9b9b7a",
+          "#d9ae94",
+          "#f1dca7",
+          "#ffcb69",
+          "#d08c60",
+          "#997b66",
+          "#ad9585",
+          "#bdaa9d",
+          "#cabbb1",
+        ];
         const color = d3.scaleOrdinal().range(customColors);
 
         const svg = d3

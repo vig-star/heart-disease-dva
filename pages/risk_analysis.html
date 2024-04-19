@@ -78,6 +78,47 @@
             pointer-events: none; /* Ensure the tooltip doesn't interfere with hover events */
             opacity: 0;
         }
+
+        button#result {
+            position: absolute;   /* Position relative to the nearest positioned ancestor */
+            left: 2500;          /* X coordinate */
+            top: 800px;           /* Y coordinate */
+            width: 150px;
+            height: 50px;
+            font-size: 16px;
+            background-color: #996d5f;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #variable-selector {
+            position: absolute;   /* Position relative to the nearest positioned ancestor */
+            left: 2500;          /* X coordinate */
+            top: 850px;           /* Y coordinate */
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .bar-label {
+            fill: #333; 
+            font-size: 12px; 
+            font-family: "Arial", sans-serif;  
+        }
+        .x-axis-label {
+            fill: #333;
+            font-size: 11px;
+            font-family: 'Arial', sans-serif;
+        }
+        .y-axis-label {
+            fill: #333;
+            font-size: 11px;
+            font-family: 'Arial', sans-serif;
+        }
     </style>
     
 </head>
@@ -90,9 +131,18 @@
         <div class="probabilities">
             <div id="probabilities"></div>
             <div id="pie-chart-container"></div>
+            <div id="bar-chart-container" style="width:600px; height:300px;"></div>
+            <button id="result" onclick="checkResults()">Check Results</button>
+            <div class="form-group" id="variable-selector">
+                <label for="correlationVariable">Select a Discrete Variable to View Heart Disease Risk:</label>
+                <select id="correlationVariable"></select>
+            </div>
+            
+            
         </div>
     </div>
-    <button id="result" onclick="checkResults()">Check Results</button>
+    
+
     
     <script>
         
@@ -251,12 +301,108 @@
             }
         }
         
-        function ready(error, heartData) {
+       
+
+
+    function updateBarChart(variable, count_x, count_xgy, n) {
+            const values = Object.keys(count_x[variable]);
+            const data = values.map(value => {
+                const total = count_x[variable][value] || 1;  // Ensure no division by zero
+                const positive = count_xgy[variable][value] || 0;
+                const percentageRisk = (positive / total);  // Calculate percentage
+                return { category: value, percentageRisk };
+            });
+
+
+            // Setup SVG and dimensions
+            const margin = { top: 150, right: 20, bottom: 300, left: 60 };
+            const width = 600 - margin.left - margin.right;
+            const height = 800 - margin.top - margin.bottom;
+
+            // Remove existing SVG if it exists to redraw it
+            d3.select("#bar-chart-container svg").remove();
+
+            const svg = d3.select("#bar-chart-container").append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+            // Set up scales
+            const x = d3.scaleBand().rangeRound([0, width]).padding(0.1);
+            const y = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.percentageRisk, 100)])  // Dynamically setting to cover all data points
+            .range([height, 0]);
+            
+
+            x.domain(data.map(d => d.category));
+            const maxPercentage = Math.max(0, d3.max(data, d => d.percentageRisk));  // Ensuring it's at least 0 to 100
+            //y.domain([0, maxPercentage]);
+
+            // Append bars
+            svg.selectAll(".bar")
+                .data(data)
+            .enter().append("rect")
+                .attr("class", "bar")
+                .attr("x", d => x(d.category))
+                .attr("width", x.bandwidth())
+                .attr("y", d => y(d.percentageRisk))
+                .attr("height", d => height - y(d.percentageRisk))
+                .attr("fill", "#996d5f");
+            
+                svg.selectAll(".text")
+                    .data(data)
+                    .enter().append("text")
+                    .attr("class", "bar-label")
+                    .attr("x", d => x(d.category) + x.bandwidth() / 2)  // Center the text in the middle of the bar
+                    .attr("y", d => y(d.percentageRisk) - 5)  // Offset the text a bit above the bar
+                    .attr("text-anchor", "middle")  // Align text to be in the middle of the coordinates
+                    .text(d => `${(d.percentageRisk * 100).toFixed(2)}%`);  // Format the number to one decimal place
+
+          // Append x-axis
+            svg.append("g")
+                .attr("class", "x-axis")
+                .attr("id", "x-axis")
+                .attr("transform", `translate(0, ${height})`)
+                .call(d3.axisBottom(x))
+                .selectAll("text")  // select all the text elements for the xaxis
+                .style("text-anchor", "end")  // set the text-anchor to 'end' which aligns the text at the end of the tick line
+                .attr("transform", "rotate(-45)");  // rotate the text
+
+
+            // Append y-axis
+            svg.append("g")
+                .call(d3.axisLeft(y).ticks(6, "%"));  // Format ticks as percentages
+
+            const maxTickHeight = d3.max(svg.selectAll(".x-axis .tick text").nodes(), 
+            node => node.getBoundingClientRect().height);
+
+            const yAxisLabel = svg.append("text")
+                .attr("class", "y-axis-label")
+                .attr("text-anchor", "middle")
+                .attr("transform", `translate(${-margin.left  / 2}, ${height / 2}) rotate(-90)`)
+                .text("Percentage Risk (%)");
+
+            const xAxisLabel = svg.append("text")
+                .attr("class", "x-axis-label")
+                .attr("text-anchor", "middle")
+                .attr("x", width / 2)
+                .attr("y", height + margin.bottom - 10)
+                .text(variable);  // Replace with your x-axis title
+            
+            const xAxisLabelOffset = 20;  
+            svg.select(".x-axis-label")  
+                .attr("y", height + maxTickHeight + xAxisLabelOffset);  
+
+        }
+
+
            
+
+        function ready(error, heartData) {
+            
             // --- Begin Categorical Values ---
             // Finds all possible categorical values for each column
-            console.log(heartData);
-            console.log(heartData.columns);
             let values_dict = {};
             heartData.forEach(d => {
                 // console.log(d);
@@ -437,6 +583,27 @@
             naiveBayes.append("label").text("Number of individuals in 100,000 that will have Heart Disease: ");
 
             calculateProbaility(count);
+            
+            const discreteVars = ['', 'Sex', 'GeneralHealth', 'PhysicalActivities', 'HadAngina', 'HadStroke', 'HadAsthma', 'HadSkinCancer', 'HadCOPD', 'HadDepressiveDisorder', 'HadKidneyDisease', 'HadArthritis', 'HadDiabetes', 'SmokerStatus', 'ECigaretteUsage', 'ChestScan', 'RaceEthnicityCategory', 'AgeCategory', 'AlcoholDrinkers', 'HIVTesting', 'FluVaxLast12', 'PneumoVaxEver', 'TetanusLast10Tdap', 'HighRiskLastYear', 'CovidPos'];
+
+            // Now update the selector and set up the event listener
+            const selector = d3.select('#correlationVariable');
+            selector.selectAll('option')
+                .data(discreteVars)
+                .enter()
+                .append('option')
+                .text(d => d)
+                .attr('value', d => d);
+                
+
+            selector.on('change', function() {
+                const selectedVar = d3.select(this).property('value');
+                console.log(selectedVar);
+                updateBarChart(selectedVar, count_x, count_xgy, n);
+            });
+
+            
+
 
         }
 

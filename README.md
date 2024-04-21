@@ -1,4 +1,6 @@
-# heart-disease-dva
+## heart-disease-dva
+
+We have three folders data, model, and pages. As the names suggest our `data` folder contains our dataset, the `model` folder contains our (`CSE_6242_Project.ipynb`) interactive python notebook that hosts our model and `rf_model.py` executes our model to predict the risk of heart attack by creating an API endpoint. Lastly, our `pages` folder contains our frontend including the visualizations using d3.
 
 ## Running the frontend
 
@@ -33,6 +35,10 @@ flask run --no-debugger
 ```
 
 This will run a local Flask server on port 5000. Make sure to have it running for model results.
+
+## Demo Video
+
+https://youtu.be/BNuujoPwTsg
 
 ## Dataset
 
